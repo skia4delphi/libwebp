@@ -36,14 +36,14 @@ static WEBP_INLINE void GetCPUInfo(int cpu_info[4], int info_type) {
     : "=a"(cpu_info[0]), "=D"(cpu_info[1]), "=c"(cpu_info[2]), "=d"(cpu_info[3])
     : "a"(info_type), "c"(0));
 }
-#elif defined(__i386__) || defined(__x86_64__)
+#elif defined(__i386__) || (defined(__x86_64__) && !defined(__arm64ec__))
 static WEBP_INLINE void GetCPUInfo(int cpu_info[4], int info_type) {
   __asm__ volatile (
     "cpuid\n"
     : "=a"(cpu_info[0]), "=b"(cpu_info[1]), "=c"(cpu_info[2]), "=d"(cpu_info[3])
     : "a"(info_type), "c"(0));
 }
-#elif defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86))
+#elif defined(_MSC_VER) && ((defined(_M_X64) && !defined(_M_ARM64EC)) || defined(_M_IX86))
 
 #if defined(_MSC_FULL_VER) && _MSC_FULL_VER >= 150030729  // >= VS2008 SP1
 #include <intrin.h>
@@ -58,7 +58,7 @@ static WEBP_INLINE void GetCPUInfo(int cpu_info[4], int info_type) {
 #endif
 
 // NaCl has no support for xgetbv or the raw opcode.
-#if !defined(__native_client__) && (defined(__i386__) || defined(__x86_64__))
+#if !defined(__native_client__) && (defined(__i386__) || (defined(__x86_64__) && !defined(__arm64ec__)))
 static WEBP_INLINE uint64_t xgetbv(void) {
   const uint32_t ecx = 0;
   uint32_t eax, edx;
@@ -68,7 +68,7 @@ static WEBP_INLINE uint64_t xgetbv(void) {
     : "=a"(eax), "=d"(edx) : "c" (ecx));
   return ((uint64_t)edx << 32) | eax;
 }
-#elif (defined(_M_X64) || defined(_M_IX86)) && \
+#elif ((defined(_M_X64) && !defined(_M_ARM64EC)) || defined(_M_IX86)) && \
       defined(_MSC_FULL_VER) && _MSC_FULL_VER >= 160040219  // >= VS2010 SP1
 #include <immintrin.h>
 #define xgetbv() _xgetbv(0)
@@ -88,7 +88,7 @@ static WEBP_INLINE uint64_t xgetbv(void) {
 #define xgetbv() 0U  // no AVX for older x64 or unrecognized toolchains.
 #endif
 
-#if defined(__i386__) || defined(__x86_64__) || defined(WEBP_HAVE_MSC_CPUID)
+#if defined(__i386__) || (defined(__x86_64__) && !defined(__arm64ec__)) || defined(WEBP_HAVE_MSC_CPUID)
 
 // helper function for run-time detection of slow SSSE3 platforms
 static int CheckSlowModel(int info) {
